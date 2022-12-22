@@ -1,2 +1,2 @@
-# localstack-demo
-This a localstack demo repository
+# localstack-experiments
+This a localstack experiments repository
