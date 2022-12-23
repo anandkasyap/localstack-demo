@@ -36,12 +36,13 @@ The instructions to setup awslocal cli can be found [here](https://github.com/lo
 
 ## Testing LocalStack with awslocal
 
-The scripts folder have some scripts to do basic testing such as
+The scripts folder has some scripts to do basic testing such as
 
 - Writing text to a Firehose Stream
 - Writing a file to a Firehose Stream
 - Writing an object to a S3 Bucket
 - Listing contents of a S3 Bucket
+- Testing Bucket Notification when an object is put in the S3 bucket.
 
 ### write-text-into-firehose.sh
 
@@ -62,9 +63,19 @@ This script expects you to provide
 
 This script will list the contents of the bucket ls-s3-demo.
 
+### read-sqs-message.sh
+
+This script will read a message from the sqs queue. If you look at the message contents, you'll notice that it is a S3 Bucket Notification which carries metadata about the message and the object related to the notification.
+
 ## Test Localstack with Python scripts
 
-There are 2 basic python scripts in the `python` folder. These scripts are just examples on how to run our application code against localstack.
+There are 2 basic python scripts in the `python` folder. These scripts are just examples on how to access localstack using the AWS SDK.
+
+`To run these scripts, please install boto3`
+
+You can install boto3 using the below command.
+
+`pip3 install boto3`
 
 ### s3-write.py
 
@@ -107,6 +118,43 @@ Once you do this, you should see the below components created.
 - SQS Queue named ls-sqs-tf-demo
 - Object Creation Bucket Notification between ls-s3-tf-demo and ls-sqs-tf-demo
 - Firehose Delivery Stream ls-firehose-tf-demo which will deliver data as objects on ls-s3-tf-demo
+- Lambda Function ls-lambda-tf-demo
 ```
 
-Now, these components can also be accessed using aws cli / awslocal / AWS SDKs.
+To verify the terraform execution, you can run the below cli commands
+
+```
+source scripts/setenv.sh
+
+# List S3 Buckets
+
+awslocal s3api list-buckets
+
+# List SQS Queues
+
+awslocal sqs list-queues
+
+# List Firehose Streams
+
+awslocal firehose list-delivery-streams
+
+# List Lambda functions
+
+awslocal lambda list-functions
+```
+
+To Test the lambda function, you just need to run the `scripts/invoke-lambda.sh`
+
+### invoke-lambda.sh
+
+This script when executed will trigger the lambda function `ls-lambda-tf-demo`. This Lambda function will create an object with key `test/from/python-lambda` in the bucket `ls-s3-demo`. This object should contain the text
+
+```
+This is a sample published into localstack from a python script running in a lambda within localstack
+```
+
+You can verify this by running the below command
+
+```
+awslocal s3 cp s3://ls-s3-demo/test/from/python-lambda . && cat python-lambda && printf "\n"
+```

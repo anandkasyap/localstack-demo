@@ -5,8 +5,13 @@ terraform {
   }
 }
 
+locals {
+  resource_path = path.module
+}
+
 provider "aws" {
-  region = "us-east-1"
+  region            = "us-east-1"
+  s3_use_path_style = true
 }
 
 resource "aws_s3_bucket" "bucket" {
@@ -42,4 +47,21 @@ resource "aws_kinesis_firehose_delivery_stream" "firehose-stream" {
     error_output_prefix = "errors"
   }
   tags = merge({ "Name" = "ls-firehose-tf-demo" }, var.tags)
+}
+
+resource "aws_lambda_function" "s3-object-lambda" {
+  # If the file is not in the current working directory you will need to include a
+  # path.module in the filename.
+  filename         = "${local.resource_path}/lambda/s3-lambda.zip"
+  function_name    = "ls-lambda-tf-demo"
+  role             = "arn:aws:iam::000000000000:role/test"
+  handler          = "s3-lambda.lambda_handler"
+  source_code_hash = filebase64sha256("${local.resource_path}/lambda/s3-lambda.zip")
+  runtime          = "python3.9"
+  timeout          = 300
+  description      = "Lambda deployment via Terraform into Localstack"
+  tags             = merge({ "Name" = "ls-lambda-tf-demo" }, var.tags)
+  #layers           = [aws_lambda_layer_version.python_lambda_layer.arn]
+
+
 }
