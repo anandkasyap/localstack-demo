@@ -1,0 +1,11 @@
+{
+  "RoleARN": "test",
+  "BucketARN": "arn:aws:s3:::ls-s3-demo",
+  "Prefix": "test/data",
+  "ErrorOutputPrefix": "test/error",
+  "BufferingHints": {
+    "SizeInMBs": 1,
+    "IntervalInSeconds": 60
+  },
+  "CompressionFormat": "UNCOMPRESSED"
+}
