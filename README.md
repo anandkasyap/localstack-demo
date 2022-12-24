@@ -4,6 +4,22 @@ This repository consists of a demo on how to use localstack for local developmen
 
 ## Setup localstack
 
+### Setup AWS Credentials
+
+If you have not setup any AWS Credentials, you need to run the below
+
+```
+aws configure
+```
+
+and set
+
+```
+AWS Access Key Id = test
+AWS Secret Key    = test
+Region = us-east-1
+```
+
 To setup localstack, run the `scripts/create-services.sh`
 
 This script will
