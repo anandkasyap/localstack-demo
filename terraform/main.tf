@@ -49,7 +49,7 @@ resource "aws_kinesis_firehose_delivery_stream" "firehose-stream" {
   tags = merge({ "Name" = "ls-firehose-tf-demo" }, var.tags)
 }
 
-resource "aws_lambda_function" "s3-object-lambda" {
+resource "aws_lambda_function" "test_lambda" {
   # If the file is not in the current working directory you will need to include a
   # path.module in the filename.
   filename         = "${local.resource_path}/lambda/s3-lambda.zip"
@@ -61,7 +61,41 @@ resource "aws_lambda_function" "s3-object-lambda" {
   timeout          = 300
   description      = "Lambda deployment via Terraform into Localstack"
   tags             = merge({ "Name" = "ls-lambda-tf-demo" }, var.tags)
-  #layers           = [aws_lambda_layer_version.python_lambda_layer.arn]
+}
 
 
+resource "aws_api_gateway_rest_api" "test_lambda_api" {
+  name        = "test_lambda_api"
+  description = "proxy to trigger test lambda"
+}
+
+resource "aws_api_gateway_resource" "test_lambda_resource" {
+  rest_api_id = aws_api_gateway_rest_api.test_lambda_api.id
+  parent_id   = aws_api_gateway_rest_api.test_lambda_api.root_resource_id
+  path_part   = "invoke"
+}
+
+resource "aws_api_gateway_method" "test_lambda_method" {
+  rest_api_id   = aws_api_gateway_rest_api.test_lambda_api.id
+  resource_id   = aws_api_gateway_resource.test_lambda_resource.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "test_lambda_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.test_lambda_api.id
+  resource_id             = aws_api_gateway_resource.test_lambda_resource.id
+  http_method             = aws_api_gateway_method.test_lambda_method.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.test_lambda.invoke_arn
+  request_parameters = {
+    "integration.request.querystring.streamName" = "'djin-ulf-logs'"
+  }
+}
+
+resource "aws_api_gateway_deployment" "test_lambda_api_gateway_deployment" {
+  depends_on  = [aws_api_gateway_integration.test_lambda_integration]
+  rest_api_id = aws_api_gateway_rest_api.test_lambda_api.id
+  stage_name  = "test"
 }

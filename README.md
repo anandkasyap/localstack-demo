@@ -6,7 +6,7 @@ This repository consists of a demo on how to use localstack for local developmen
 
 ### Setup AWS Credentials
 
-If you have not setup any AWS Credentials, you need to run the below
+If you have not setup any AWS Credentials, you should run the below
 
 ```
 aws configure
@@ -44,7 +44,7 @@ To Access localstack using aws cli, you have to run the aws cli as mentioned bel
    aws --endpoint-url=http://localhost:4567 s3 ls s3://ls-s3-demo --recursive
 ```
 
-Alternatively, you can install awslocal cli binary. If you use awslocal, you don't have to mention --endpoint_url. By default, awslocal points to <http://localhost:4566>. To override the port, you need to set an environment variable EDGE_PORT with the new port number
+Alternatively, you can install awslocal cli binary. If you use awslocal, you don't have to mention --endpoint_url. By default, awslocal points to <http://localhost:4566>. To override the port, you should set an environment variable EDGE_PORT with the new port number
 
 ## Setup Aws Local CLI
 
@@ -100,7 +100,7 @@ This script
 - creates an object with text `This is a sample published into localstack from a python script`
 - uploads it into the s3 bucket `ls-s3-demo` with key `test/from/python`
 
-You can validate the script's successful execution by downloading the object using the below command `aws --endpoint-url=http://localhost:4567 s3 cp s3://ls-s3-demo/test/from/python . && cat python && printf "\n"`
+You can validate the script's successful execution by downloading the object using the below command `awslocal s3 cp s3://ls-s3-demo/test/from/python . && cat python && printf "\n"`
 
 ### s3-read.py
 
@@ -135,6 +135,7 @@ Once you do this, you should see the below components created.
 - Object Creation Bucket Notification between ls-s3-tf-demo and ls-sqs-tf-demo
 - Firehose Delivery Stream ls-firehose-tf-demo which will deliver data as objects on ls-s3-tf-demo
 - Lambda Function ls-lambda-tf-demo
+- API Gateway to Trigger the Lambda function
 ```
 
 To verify the terraform execution, you can run the below cli commands
@@ -157,11 +158,18 @@ awslocal firehose list-delivery-streams
 # List Lambda functions
 
 awslocal lambda list-functions
+
+# List API Gateways
+
+awslocal apigateway get-rest-apis
 ```
 
-To Test the lambda function, you just need to run the `scripts/invoke-lambda.sh`
+To invoke the lambda function, you can
 
-### invoke-lambda.sh
+- run the `scripts/invoke-lambda.sh`
+- trigger the api gateway
+
+### Run invoke-lambda.sh
 
 This script when executed will trigger the lambda function `ls-lambda-tf-demo`. This Lambda function will create an object with key `test/from/python-lambda` in the bucket `ls-s3-demo`. This object should contain the text
 
@@ -169,8 +177,73 @@ This script when executed will trigger the lambda function `ls-lambda-tf-demo`. 
 This is a sample published into localstack from a python script running in a lambda within localstack
 ```
 
-You can verify this by running the below command
+You can validate this by running the below command
 
 ```
 awslocal s3 cp s3://ls-s3-demo/test/from/python-lambda . && cat python-lambda && printf "\n"
 ```
+
+### Trigger API Gateway
+
+To Trigger the API Gateway, you should curl the api gateway endpoint url. You should construct the url by replacing the rest-api-id in the below mentioned pattern.
+
+```
+http://localhost:4567/restapis/<<Rest API ID>>/<<STAGE NAME>>/_user_request_/<<URL Resource>>
+```
+
+To get the rest api id, you run the below command.
+
+```
+awslocal apigateway get-rest-apis
+```
+
+You should get a response like the one below.
+
+```
+{
+    "items": [
+        {
+            "id": "zwk8gj9rsm",
+            "name": "test_lambda_api",
+            "description": "proxy to trigger test lambda",
+            "createdDate": 1672264325.0,
+            "version": "V1",
+            "binaryMediaTypes": [],
+            "apiKeySource": "HEADER",
+            "endpointConfiguration": {
+                "types": [
+                    "EDGE"
+                ]
+            },
+            "tags": {},
+            "disableExecuteApiEndpoint": false
+        }
+    ]
+}
+```
+
+Get the value from the id field.
+
+For this API Gateway example, your url should be similar to identify your Rest API ID and replace it in the url given below.
+
+```
+http://localhost:4567/restapis/zwk8gj9rsm/test/_user_request_/invoke
+```
+
+Here `zwk8gj9rsm` is my rest api id. your url might differ here.
+
+Once you curl a HTTP GET request, you should see the response `"Lambda Invoked Successfully!!"`
+
+You can validate this by running the below command
+
+```
+awslocal s3 cp s3://ls-s3-demo/test/from/python-lambda . && cat python-lambda && printf "\n"
+```
+
+You should see the below text
+
+```
+This is a sample published into localstack from a python script running in a lambda within localstack, triggered by API Gateway
+```
+
+If you look at that text, it clearly states that the lambda function was triggered by API Gateway.
