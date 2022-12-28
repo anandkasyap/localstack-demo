@@ -234,10 +234,18 @@ Here `zwk8gj9rsm` is my rest api id. your url might differ here.
 
 Once you curl a HTTP GET request, you should see the response `"Lambda Invoked Successfully!!"`
 
-You can validate this by running the below command
+Now, run the below command
 
 ```
-awslocal s3 cp s3://ls-s3-demo/test/from/python-lambda . && cat python-lambda && printf "\n"
+awslocal s3 ls s3://ls-s3-demo
+```
+
+You should see an object `test/from/python-lambda-api-gateway`
+
+You can download this file and inspect its contents by running the below command
+
+```
+awslocal s3 cp s3://ls-s3-demo/test/from/python-lambda-api-gateway . && cat python-lambda-api-gateway && printf "\n"
 ```
 
 You should see the below text
@@ -245,5 +253,3 @@ You should see the below text
 ```
 This is a sample published into localstack from a python script running in a lambda within localstack, triggered by API Gateway
 ```
-
-If you look at that text, it clearly states that the lambda function was triggered by API Gateway.
